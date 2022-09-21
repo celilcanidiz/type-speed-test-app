@@ -1,134 +1,88 @@
-import { useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { changeTheme } from "../../redux/WeatherSlice/WeatherSlice";
-import Card from "../Card/Card";
-import { WiHumidity } from "react-icons/wi";
-import { ImLocation2 } from "react-icons/im";
-import { WiBarometer } from "react-icons/wi";
-import { MdVisibility } from "react-icons/md";
-import { BsSun } from "react-icons/bs";
-import { BsMoonStars } from "react-icons/bs";
+import {useState, useEffect} from 'react'
+import { useSelector, useDispatch } from 'react-redux';
+import { VscDebugRestart } from "react-icons/vsc";
+import { keyCounter, setStatus, tick,TypingStart, refleshWords, addCorrect, addInCorrect, changeGameOver, resetAll } from '../../redux/TypeSlice/TypeSlice'
+
 
 function Content() {
-  const weatherTheme = useSelector((state) => state.weatherapp.weatherTheme);
-  const dispatch = useDispatch();
+const dispatch = useDispatch();
+const [input, setInput] = useState('');
+const [start, setStart] = useState(false); // timer status
+const [index, setIndex] = useState(0); // words index
 
-  const weatherDailyData = useSelector(
-    (state) => state.weatherapp.weatherDailyData
-  );
-
-  const weatherCurrentData = useSelector(
-    (state) => state.weatherapp.weatherCurrentData
-  );
-  const weatherDataStatus = useSelector(
-    (state) => state.weatherapp.weatherDataStatus
-  );
-
-  useEffect(() => {
-    if (weatherTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      window.localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      window.localStorage.setItem("theme", "light");
+const words = useSelector((state) => state.typing.items);
+const keyCount = useSelector((state) => state.typing.keyCount);
+const timer = useSelector((state) => state.typing.timer);
+const lang = useSelector((state) => state.typing.lang);
+const typingstart = useSelector((state) => state.typing.typingstart);
+const isOver = useSelector((state)=> state.typing.gameover);
+//timer
+useEffect(() => {
+    if (typingstart) setTimeout(() => dispatch(tick()), 1000);
+    if (timer === 1) {
+      dispatch(TypingStart(false))
+    };
+    if(timer === 0){
+      dispatch(changeGameOver(true))
     }
-  }, [weatherTheme]);
+  }, [typingstart, timer, dispatch]);
 
-  const handleThemeSwitch = () => {
-    dispatch(changeTheme(weatherTheme === "dark" ? "light" : "dark"));
-  };
+useEffect(() => {
+  if (!isOver) {
+    setInput('');
+  }
+},[isOver])
+const handleChange = (e) => {
+    dispatch(keyCounter());
+    dispatch(setStatus({ id: words[index].id, status: 'next' }));
+
+    let word = lang === 'english' ? words[index].english.toLowerCase() : words[index].turkish.toLowerCase();
+    if (e.target.value.includes(' ')) {
+        setInput('');
   
+        if (word.includes(input) && word.length === input.length) {
+          dispatch(setStatus({ id: words[index].id, status: 'correct' }));
+          dispatch(addCorrect());
+        } else if (!word.includes(input) || word.length !== input.length) {
+          dispatch(setStatus({ id: words[index].id, status: 'incorrect' }));
+          dispatch(addInCorrect());
+        }
+  
+        if (words.length - 1 === index) {
+          dispatch(refleshWords());
+          setIndex(0);
+        } else setIndex(index + 1);
+      } else setInput(e.target.value);
+  
+      if (keyCount === 1) setStart(true);
+      dispatch(TypingStart(start))
+    };
 
+      const handleClick = () => {
+      dispatch(TypingStart(false))
+          setTimeout(() => {
+            setInput('')
+          dispatch(resetAll());
+          }, 1006);
+        
+    }
+    
   return (
-    <div className="xl:w-full xl:h-screen w-full h-full flex flex-col bg-gray-100 p-8 dark:bg-neutral-800 dark:bg-opacity-95" >
-        <div className="flex justify-between">
-            <h1 className="text-2xl dark:text-white">Week</h1>
-            <div>
-              <button
-                type="button"
-                onClick={handleThemeSwitch}
-                className="p-2 dark:text-white"
-              >
-                {weatherTheme === "dark" ? (
-                  <BsMoonStars size={25} />
-                ) : (
-                  <BsSun size={25} />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="xl:flex 2xl:items-center grid grid-cols-1 gap-y-4 justify-between mt-8">
-            {weatherDailyData.slice(1).map((daily, index) => (
-              <Card key={index} daily={daily} />
-            ))}
-          </div>              
-
-          <div className=" mt-10 dark:text-white">
-            <h1 className="text-xl">Today's Highlights</h1>
-            <div className="2xl:grid 2xl:grid-cols-2 2xl:gap-x-5 grid grid-cols-1">
-              <div className="flex flex-col 2xl:pb-5 pb-9 pt-4 pl-7 grow bg-white mt-5 rounded-3xl shadow-lg bg-sky-100/50 dark:bg-neutral-800">
-                <span className="text-gray-400">Humidity</span>
-                <div className="flex mt-6">
-                  <span className="inline-block mr-3 bg-green-500 border-2 border-green-800 rounded-full p-1">
-                    <WiHumidity size={25} color="white" />
-                  </span>
-                  <span>
-                    <span className="text-3xl">
-                      {weatherCurrentData.humidity}
-                    </span>
-                    %
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col pb-5 pt-4 pl-7 grow bg-white mt-5 rounded-3xl shadow-lg bg-sky-100/50 dark:bg-neutral-800">
-                <span className="text-gray-400">Wind Status</span>
-                <div className="mt-1">
-                  <span className="text-4xl">
-                    {weatherCurrentData.wind_speed}
-                  </span>{" "}
-                  km/s
-                </div>
-                <div className="flex items-center mt-4 font-light">
-                  <div className="inline-block mr-3 bg-blue-600 text-white rounded-full p-2">
-                    <ImLocation2 size={18} />
-                  </div>
-                  SSW
-                </div>
-              </div>
-
-              <div className="flex flex-col pb-14 pt-4 pl-7 grow bg-white mt-5 rounded-3xl shadow-lg bg-sky-100/50 dark:bg-neutral-800">
-                <span className="text-gray-400">Pressure</span>
-                <div className="flex mt-6">
-                  <span className="inline-block mr-3 bg-red-700 border-2 rounded-full p-1">
-                    <WiBarometer size={25} color="white" />
-                  </span>
-                  <span>
-                    <span className="text-3xl">
-                      {weatherCurrentData.pressure}
-                    </span>
-                    hPa
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col pb-14 pt-4 pl-7 grow bg-white mt-5 rounded-3xl shadow-lg bg-sky-100/50   dark:bg-neutral-800">
-                <span className="text-gray-400">Visibility</span>
-                <div className="flex mt-6">
-                  <span className="inline-block mr-3 bg-purple-700 border-2 rounded-full p-1">
-                    <MdVisibility size={25} color="white" />
-                  </span>
-                  <span>
-                    <span className="text-3xl">
-                      {weatherCurrentData.visibility}
-                    </span>
-                    m
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className=' flex flex-col items-center'>
+        <div className='flex bg-[#fefedf] w-[60%]  flex-wrap text-xl p-5 border border-black border-solid rounded-md  dark:text-black'>
+        {words.map((word) => (
+          <span className={`${word.status} m-1 text-bold`} key={word.id}>
+            {lang === 'turkish' ? word.turkish.toLowerCase() : word.english.toLowerCase()}
+          </span>
+        ))}
+        </div>
+        <div className='w-[60%] flex justify-around mt-3 '>
+        <input className='rounded-md w-[60%] p-2 border dark:text-black border-black' disabled={timer === 0 && keyCount !== 0} value={input} onChange={handleChange} type="text" />
+        <div className='w-[%100] flex text-center'>
+        <div className='flex justify-center items-center text-xl w-32 h-14 border border-black rounded-lg bg-[#fefedf] dark:text-black mr-2 font-bold '><p>{timer}</p></div>
+        <button className='w-14 h-14 flex justify-center items-center border border-black rounded-xl bg-[#fefedf] dark:text-black hover:bg-[#f5f5df]'> <VscDebugRestart onClick={() => handleClick()} className='w-[70%] h-[70%]'/></button>
+        </div>
+        </div>
     </div>
   )
 }

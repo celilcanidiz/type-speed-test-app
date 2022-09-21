@@ -1,8 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
-import weatherSlice from "./WeatherSlice/WeatherSlice";
+import TypeSlice from "./TypeSlice/TypeSlice";
 
 export const store = configureStore({
   reducer: {
-    weatherapp: weatherSlice,
+    typing: TypeSlice,
   },
 });
